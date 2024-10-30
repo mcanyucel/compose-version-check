@@ -62,6 +62,8 @@ Run the checker with default config:
 Any changes will be reported to your configured notification service:
 [Slack](https://api.slack.com/messaging/webhooks) or [ntfy.sh](https://ntfy.sh).
 
+![image](https://imgurl.mustafacanyucel.com/i/52d94f23-e86e-4986-b950-6f8963e093a0.jpg)
+
 ### Debug Mode
 
 Run with debug output:
