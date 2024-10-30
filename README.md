@@ -59,6 +59,9 @@ Run the checker with default config:
 ./compose-checker
 ```
 
+Any changes will be reported to your configured notification service:
+[Slack](https://api.slack.com/messaging/webhooks) or [ntfy.sh](https://ntfy.sh).
+
 ### Debug Mode
 
 Run with debug output:
