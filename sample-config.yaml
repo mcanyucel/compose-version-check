@@ -1,6 +1,0 @@
-files:
-  - local_path: "/opt/bin/test/docker-compose.yaml"
-    source_url: "https://example.com/docker-compose.yaml"
-notifications:
-  type: "debug"
-  debug_file: "notifications"  # Optional: will create files like notifications_2024-01-01_12-34-56.log

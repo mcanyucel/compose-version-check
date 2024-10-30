@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -79,10 +80,16 @@ func main() {
 
 	results := checkComposeFilesConcurrently(config.Files)
 
-	message := formatResults(results)
-	if err := sendNotification(message, config.Notifications); err != nil {
-		fmt.Printf("Error sending notification: %v\n", err)
-		os.Exit(1)
+	// Only send notification if there are changes or errors
+	if hasChangesOrErrors(results) {
+		message := formatResults(results)
+		if err := sendNotification(message, config.Notifications); err != nil {
+			fmt.Printf("Error sending notification: %v\n", err)
+			os.Exit(1)
+		}
+	} else if *debug {
+		// In debug mode, print that no changes were found
+		fmt.Println("No changes or errors detected - no notification sent")
 	}
 }
 
@@ -117,6 +124,16 @@ func loadConfig(path string) (Config, error) {
 	}
 
 	return config, nil
+}
+
+// Add this function to check if there are any changes or errors
+func hasChangesOrErrors(results []Result) bool {
+	for _, result := range results {
+		if result.Error != nil || len(result.ServiceChanges) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func checkComposeFilesConcurrently(mappings []FileMapping) []Result {
@@ -199,12 +216,17 @@ func downloadComposeFile(url string) (ComposeFile, error) {
 	return compose, err
 }
 
+// Update the compareComposeFiles function
 func compareComposeFiles(local, remote ComposeFile) []ServiceChange {
 	var changes []ServiceChange
 
 	for serviceName, localService := range local.Services {
 		if remoteService, exists := remote.Services[serviceName]; exists {
-			if localService.Image != remoteService.Image {
+			localImage := normalizeImageName(localService.Image)
+			remoteImage := normalizeImageName(remoteService.Image)
+
+			if localImage != remoteImage {
+				// Store original values in the changes to maintain actual file content
 				changes = append(changes, ServiceChange{
 					ServiceName: serviceName,
 					OldImage:    localService.Image,
@@ -219,26 +241,42 @@ func compareComposeFiles(local, remote ComposeFile) []ServiceChange {
 
 func formatResults(results []Result) string {
 	var buf bytes.Buffer
-	buf.WriteString("Docker Compose File Check Results:\n\n")
 
+	// Count changes and errors
+	changes := 0
+	errors := 0
+	for _, result := range results {
+		if result.Error != nil {
+			errors++
+		}
+		changes += len(result.ServiceChanges)
+	}
+
+	// Create summary header
+	if errors > 0 && changes > 0 {
+		buf.WriteString(fmt.Sprintf("🔍 Found %d changes and %d errors in Docker Compose files:\n\n", changes, errors))
+	} else if errors > 0 {
+		buf.WriteString(fmt.Sprintf("❌ Found %d errors checking Docker Compose files:\n\n", errors))
+	} else if changes > 0 {
+		buf.WriteString(fmt.Sprintf("📝 Found %d changes in Docker Compose files:\n\n", changes))
+	}
+
+	// Add details for each result
 	for _, result := range results {
 		if result.Error != nil {
 			buf.WriteString(fmt.Sprintf("❌ Error checking %s: %v\n\n", result.Path, result.Error))
 			continue
 		}
 
-		if len(result.ServiceChanges) == 0 {
-			buf.WriteString(fmt.Sprintf("✅ No changes found for %s\n\n", result.Path))
-			continue
+		if len(result.ServiceChanges) > 0 {
+			buf.WriteString(fmt.Sprintf("📝 Changes found in %s:\n", result.Path))
+			for _, change := range result.ServiceChanges {
+				buf.WriteString(fmt.Sprintf("  Service %s:\n", change.ServiceName))
+				buf.WriteString(fmt.Sprintf("    Old image: %s\n", change.OldImage))
+				buf.WriteString(fmt.Sprintf("    New image: %s\n", change.NewImage))
+			}
+			buf.WriteString("\n")
 		}
-
-		buf.WriteString(fmt.Sprintf("📝 Changes found in %s:\n", result.Path))
-		for _, change := range result.ServiceChanges {
-			buf.WriteString(fmt.Sprintf("  Service %s:\n", change.ServiceName))
-			buf.WriteString(fmt.Sprintf("    Old image: %s\n", change.OldImage))
-			buf.WriteString(fmt.Sprintf("    New image: %s\n", change.NewImage))
-		}
-		buf.WriteString("\n")
 	}
 
 	return buf.String()
@@ -306,6 +344,15 @@ func sendSlackNotification(message string, webhookURL string) error {
 	}
 
 	return nil
+}
+
+// Add this new function to normalize image tags
+func normalizeImageName(image string) string {
+	// If image has no tag, append ":latest"
+	if !strings.Contains(image, ":") {
+		return image + ":latest"
+	}
+	return image
 }
 
 func sendNtfyNotification(message string, config NotificationConfig) error {
