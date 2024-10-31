@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -185,8 +186,10 @@ func checkComposeFilesConcurrently(mappings []FileMapping) []Result {
 func checkSingleComposeFile(mapping FileMapping) Result {
 	result := Result{Path: mapping.LocalPath}
 
+	actualPath := getActualPath(mapping.LocalPath)
+
 	// Read local file
-	localCompose, err := readComposeFile(mapping.LocalPath)
+	localCompose, err := readComposeFile(actualPath) // Use actualPath here
 	if err != nil {
 		result.Error = fmt.Errorf("error reading local file: %v", err)
 		return result
@@ -436,4 +439,25 @@ func sendNtfyNotification(message string, config NotificationConfig) error {
 	}
 
 	return nil
+}
+
+func isRunningInContainer() bool {
+	// Check for .dockerenv file which exists in Docker containers
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return true
+	}
+
+	// As a backup, check cgroup
+	if data, err := os.ReadFile("/proc/1/cgroup"); err == nil {
+		return strings.Contains(string(data), "docker")
+	}
+
+	return false
+}
+
+func getActualPath(path string) string {
+	if isRunningInContainer() && !strings.HasPrefix(path, "/watch/") {
+		return filepath.Join("/watch", path)
+	}
+	return path
 }

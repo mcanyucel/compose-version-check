@@ -15,23 +15,96 @@ A Go application that monitors Docker Compose files for changes by comparing loc
 - ⚡ Parallel processing of multiple files
 - 🔒 Support for both public and private repositories
 
+## System Requirements
+
+- x86_64 (64-bit) architecture
+- Linux/Unix-like operating system
+
+Note: For other architectures (like ARM), you'll need to build from source.
+
 ## Installation
 
-1. Clone the repository:
+Choose one of these methods to install compose-checker:
+
+### Quick Install Script (Linux/macOS, x86_64 only)
+
 ```bash
-git clone [your-repo-url]
-cd docker-compose-checker
+curl -sSL https://raw.githubusercontent.com/mcanyucel/compose-version-check/main/install.sh | bash
 ```
 
-2. Build the application:
+This will:
+- Check if your system is compatible (x86_64)
+- Place the binary in ~/.local/bin (or /usr/local/bin if run as root)
+- Create a template config.yaml in ~/.config/compose-checker/
+
+### Manual Installation
+
+1. Download the latest release from [GitHub Releases](https://github.com/mcanyucel/compose-version-check/releases)
+2. Extract and move the binary:
 ```bash
+# Linux/macOS (x86_64)
+chmod +x compose-checker
+sudo mv compose-checker /usr/local/bin/
+
+# Or without sudo to your user bin directory:
+mkdir -p ~/.local/bin
+mv compose-checker ~/.local/bin/
+```
+
+3. Create a config file:
+```bash
+mkdir -p ~/.config/compose-checker
+curl -sSL https://raw.githubusercontent.com/mcanyucel/compose-version-check/main/config.yaml.example > ~/.config/compose-checker/config.yaml
+```
+
+### Building from Source (for other architectures)
+
+If you're not on x86_64 architecture, you'll need to build from source:
+
+```bash
+git clone https://github.com/mcanyucel/compose-version-check.git
+cd compose-version-check
 go build -o compose-checker
 ```
 
-3. Make it executable:
+### Docker
+
+You can run compose-checker in a container. Note that the Docker image is built for x86_64 architecture.
+
 ```bash
-chmod +x compose-checker
+docker run -d \
+  --name compose-checker \
+  -v /path/to/your/compose/files:/watch:ro \
+  -v /path/to/config.yaml:/app/config.yaml:ro \
+  mcanyucel/compose-checker
 ```
+
+Example config file (works for both Docker and non-Docker usage):
+```yaml
+files:
+  - local_path: "docker-compose.yaml"
+    source_url: "https://raw.githubusercontent.com/user/repo/main/docker-compose.yaml"
+  - local_path: "other/docker-compose.yaml"
+    source_url: "https://raw.githubusercontent.com/user/other/main/docker-compose.yaml"
+notifications:
+  type: "slack"  # or "ntfy" or "telegram" or "debug"
+  slack_webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+```
+
+Docker Compose example:
+```yaml
+version: '3'
+services:
+  compose-checker:
+    image: mcanyucel/compose-checker
+    volumes:
+      - /path/to/your/compose/files:/watch:ro
+      - ./config.yaml:/app/config.yaml:ro
+    restart: unless-stopped
+```
+
+Note: When running in Docker, the application automatically detects it's in a container and handles path mapping. You don't need to modify your paths in the config file - just use the paths as they appear in your filesystem.
+
 
 ## Configuration
 
