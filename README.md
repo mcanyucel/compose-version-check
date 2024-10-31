@@ -105,6 +105,20 @@ Messages will be formatted and sent to your configured Slack webhook URL.
 ### ntfy.sh
 Notifications will be sent to your configured ntfy.sh topic.
 
+### Telegram
+To use Telegram notifications, you'll need to:
+
+1. Create a Telegram bot using BotFather and get the bot token
+2. Get the chat ID where you want to send notifications (you can send a message to your bot and use the Telegram API to get the chat ID)
+3. Update your config.yaml to include the Telegram configuration:
+
+```
+notifications:
+  type: telegram
+  telegram_token: "your-bot-token"
+  telegram_chat: "your-chat-id"
+```
+
 ### Debug Output
 When using debug mode, output will look like:
 ```

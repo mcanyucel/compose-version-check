@@ -22,11 +22,13 @@ type Config struct {
 }
 
 type NotificationConfig struct {
-	Type         string `yaml:"type"` // "slack", "ntfy", or "debug"
-	SlackWebhook string `yaml:"slack_webhook,omitempty"`
-	NtfyTopic    string `yaml:"ntfy_topic,omitempty"`
-	NtfyServer   string `yaml:"ntfy_server,omitempty"`
-	DebugFile    string `yaml:"debug_file,omitempty"` // Path to debug output file
+	Type          string `yaml:"type"` // "slack", "ntfy", "telegram", or "debug"
+	SlackWebhook  string `yaml:"slack_webhook,omitempty"`
+	NtfyTopic     string `yaml:"ntfy_topic,omitempty"`
+	NtfyServer    string `yaml:"ntfy_server,omitempty"`
+	DebugFile     string `yaml:"debug_file,omitempty"`
+	TelegramToken string `yaml:"telegram_token,omitempty"`
+	TelegramChat  string `yaml:"telegram_chat,omitempty"`
 }
 
 // FileMapping represents a local file to source URL mapping
@@ -94,7 +96,7 @@ func main() {
 }
 
 func loadConfig(path string) (Config, error) {
-	data, err := os.ReadFile(path) // Using os.ReadFile instead of ioutil.ReadFile
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return Config{}, fmt.Errorf("error reading config file: %v", err)
 	}
@@ -119,8 +121,24 @@ func loadConfig(path string) (Config, error) {
 	}
 
 	// Validate notification config
-	if config.Notifications.Type != "slack" && config.Notifications.Type != "ntfy" && config.Notifications.Type != "debug" {
-		return Config{}, fmt.Errorf("notification type must be either 'slack', 'ntfy', or 'debug")
+	validTypes := map[string]bool{
+		"slack":    true,
+		"ntfy":     true,
+		"debug":    true,
+		"telegram": true,
+	}
+	if !validTypes[config.Notifications.Type] {
+		return Config{}, fmt.Errorf("notification type must be one of: slack, ntfy, telegram, or debug")
+	}
+
+	// Additional validation for Telegram config
+	if config.Notifications.Type == "telegram" {
+		if config.Notifications.TelegramToken == "" {
+			return Config{}, fmt.Errorf("telegram_token is required for telegram notifications")
+		}
+		if config.Notifications.TelegramChat == "" {
+			return Config{}, fmt.Errorf("telegram_chat is required for telegram notifications")
+		}
 	}
 
 	return config, nil
@@ -288,6 +306,8 @@ func sendNotification(message string, config NotificationConfig) error {
 		return sendSlackNotification(message, config.SlackWebhook)
 	case "ntfy":
 		return sendNtfyNotification(message, config)
+	case "telegram":
+		return sendTelegramNotification(message, config)
 	case "debug":
 		return sendDebugNotification(message, config.DebugFile)
 	default:
@@ -341,6 +361,41 @@ func sendSlackNotification(message string, webhookURL string) error {
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("slack returned non-200 status code: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func sendTelegramNotification(message string, config NotificationConfig) error {
+	if config.TelegramToken == "" {
+		return fmt.Errorf("telegram bot token is required")
+	}
+	if config.TelegramChat == "" {
+		return fmt.Errorf("telegram chat ID is required")
+	}
+
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", config.TelegramToken)
+
+	payload := map[string]string{
+		"chat_id":    config.TelegramChat,
+		"text":       message,
+		"parse_mode": "HTML", // Enable HTML formatting
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("error marshaling telegram payload: %v", err)
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("error sending telegram message: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("telegram API returned non-200 status code: %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	return nil
