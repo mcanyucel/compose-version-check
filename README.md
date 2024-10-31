@@ -1,6 +1,6 @@
 # Docker Compose Checker
 
-A Go application that monitors Docker Compose files for changes by comparing local files with their upstream sources. It can notify you of any image version changes via Slack or ntfy.sh.
+A Go application that monitors Docker Compose files for changes by comparing local files with their upstream sources. It can notify you of any image version changes via Slack, ntfy.sh, or Telegram.
 
 ## Features
 
@@ -10,6 +10,7 @@ A Go application that monitors Docker Compose files for changes by comparing loc
 - 📧 Notifications through:
   - Slack (via webhooks)
   - ntfy.sh
+  - Telegram
   - Debug output (console/file)
 - ⚡ Parallel processing of multiple files
 - 🔒 Support for both public and private repositories
@@ -43,10 +44,12 @@ files:
   - local_path: "./project2/docker-compose.yaml"
     source_url: "https://raw.githubusercontent.com/user/project2/main/docker-compose.yaml"
 notifications:
-  type: "slack"  # or "ntfy" or "debug"
+  type: "slack"  # or "ntfy" or "telegram" or "debug"
   slack_webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"  # for Slack
   ntfy_topic: "your-topic"  # for ntfy
   ntfy_server: "https://ntfy.sh"  # optional for ntfy, defaults to https://ntfy.sh
+  telegram_token: "your-bot-token"  # for Telegram
+  telegram_chat: "your-chat-id"  # for Telegram
   debug_file: "notifications"  # optional, for debug mode
 ```
 
@@ -60,7 +63,7 @@ Run the checker with default config:
 ```
 
 Any changes will be reported to your configured notification service:
-[Slack](https://api.slack.com/messaging/webhooks) or [ntfy.sh](https://ntfy.sh).
+[Slack](https://api.slack.com/messaging/webhooks), [ntfy.sh](https://ntfy.sh), or Telegram.
 
 ![image](https://imgurl.mustafacanyucel.com/i/52d94f23-e86e-4986-b950-6f8963e093a0.jpg)
 
@@ -106,13 +109,20 @@ Messages will be formatted and sent to your configured Slack webhook URL.
 Notifications will be sent to your configured ntfy.sh topic.
 
 ### Telegram
-To use Telegram notifications, you'll need to:
+To use Telegram notifications:
 
-1. Create a Telegram bot using BotFather and get the bot token
-2. Get the chat ID where you want to send notifications (you can send a message to your bot and use the Telegram API to get the chat ID)
-3. Update your config.yaml to include the Telegram configuration:
+1. Create a new bot:
+   - Message [@BotFather](https://t.me/botfather) on Telegram
+   - Use the `/newbot` command and follow the instructions
+   - Save the bot token you receive
 
-```
+2. Get your chat ID:
+   - Send a message to your new bot
+   - Visit `https://api.telegram.org/bot<YourBotToken>/getUpdates`
+   - Look for the `chat.id` field in the response
+
+3. Configure in your `config.yaml`:
+```yaml
 notifications:
   type: telegram
   telegram_token: "your-bot-token"
