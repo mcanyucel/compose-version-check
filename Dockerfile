@@ -2,20 +2,28 @@ FROM golang:1.21-alpine AS builder
 
 WORKDIR /build
 COPY . .
-RUN go build -o compose-checker
+RUN go build -o compose-checker compose-version-check.go
 
-FROM alpine:3.19
+FROM mcuadros/ofelia:latest
 
 WORKDIR /app
 # Copy the binary
 COPY --from=builder /build/compose-checker /app/
-# Copy example config
-COPY config.yaml.example /app/config.yaml.example
 
-# Create watch directory - this is where docker-compose files will be mounted
-RUN mkdir /watch
+# Create required directories
+RUN mkdir /watch && \
+    mkdir -p /etc/ofelia
 
-# The application will automatically detect it's running in Docker
-# and prepend /watch to the paths in the config file
-ENTRYPOINT ["/app/compose-checker"]
-CMD ["-config", "/app/config.yaml"]
+# Create startup script that will create config at runtime
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'echo "Setting up scheduler to run every ${CHECK_INTERVAL:-6} hours"' >> /app/start.sh && \
+    echo 'echo "[job-exec \"compose-checker\"]" > /etc/ofelia/config.ini' >> /app/start.sh && \
+    echo 'echo "schedule = @every $(echo ${CHECK_INTERVAL:-6})h" >> /etc/ofelia/config.ini' >> /app/start.sh && \
+    echo 'echo "command = /app/compose-checker -config /app/config.yaml" >> /etc/ofelia/config.ini' >> /app/start.sh && \
+    echo 'echo "Running initial check..."' >> /app/start.sh && \
+    echo '/app/compose-checker -config /app/config.yaml' >> /app/start.sh && \
+    echo 'echo "Starting scheduler..."' >> /app/start.sh && \
+    echo 'exec ofelia daemon --config=/etc/ofelia/config.ini' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+ENTRYPOINT ["/app/start.sh"]

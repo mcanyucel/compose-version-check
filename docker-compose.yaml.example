@@ -1,0 +1,9 @@
+services:
+  compose-checker:
+    image: mcanyucel/compose-checker
+    volumes:
+      - ./:/watch:ro
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - CHECK_INTERVAL=6  # Check every 6 hours, change this value as needed
+    restart: unless-stopped
