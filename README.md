@@ -69,13 +69,16 @@ go build -o compose-checker
 
 ### Docker
 
-You can run compose-checker in a container. Note that the Docker image is built for x86_64 architecture.
+You can run compose-checker in a container with automated scheduling using Ofelia. Note that the Docker image is built for x86_64 architecture.
+
+The container runs an initial check immediately upon startup and then runs periodic checks based on the configured interval.
 
 ```bash
 docker run -d \
   --name compose-checker \
   -v /path/to/your/compose/files:/watch:ro \
   -v /path/to/config.yaml:/app/config.yaml:ro \
+  -e CHECK_INTERVAL=6 \  # Optional: Check every 6 hours (default)
   mcanyucel/compose-checker
 ```
 
@@ -100,10 +103,18 @@ services:
     volumes:
       - /path/to/your/compose/files:/watch:ro
       - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - CHECK_INTERVAL=6  # Check every 6 hours (default)
     restart: unless-stopped
 ```
 
-Note: When running in Docker, the application automatically detects it's in a container and handles path mapping. You don't need to modify your paths in the config file - just use the paths as they appear in your filesystem.
+Note: When running in Docker:
+- The application automatically detects it's in a container and handles path mapping
+- Uses Ofelia for reliable container-native scheduling
+- Runs an initial check immediately upon startup
+- Performs subsequent checks every CHECK_INTERVAL hours (defaults to 6 if not specified)
+- You don't need to modify paths in the config file - just use the paths as they appear in your filesystem
+- All compose files should be within the mounted directory
 
 
 ## Configuration
@@ -156,21 +167,26 @@ Use a specific config file:
 
 ## Automated Checking
 
-### Using Cron
+### Using Cron (Non-Docker)
 
 Add to crontab to run every 6 hours:
 ```bash
 0 */6 * * * /path/to/compose-checker -config /path/to/config.yaml
 ```
 
-### Using a Shell Script
+### Using Docker
 
-Create a shell script for automated runs:
+When using Docker, scheduling is handled automatically by Ofelia within the container. You can configure the check interval using the CHECK_INTERVAL environment variable (either in compose file or as below):
 
 ```bash
-#!/bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-$DIR/compose-checker -config $DIR/config.yaml
+# Check every 2 hours
+CHECK_INTERVAL=2 docker compose up -d
+
+# Check every 12 hours
+CHECK_INTERVAL=12 docker compose up -d
+
+# Use default 6-hour interval
+docker compose up -d
 ```
 
 ## Notification Examples
