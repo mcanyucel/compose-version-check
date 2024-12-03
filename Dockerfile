@@ -20,6 +20,8 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
     echo 'echo "[job-exec \"compose-checker\"]" > /etc/ofelia/config.ini' >> /app/start.sh && \
     echo 'echo "schedule = @every $(echo ${CHECK_INTERVAL:-6})h" >> /etc/ofelia/config.ini' >> /app/start.sh && \
     echo 'echo "command = /app/compose-checker -config /app/config.yaml" >> /etc/ofelia/config.ini' >> /app/start.sh && \
+    echo 'echo "user = root" >> /etc/ofelia/config.ini' && \  
+    echo 'echo "running-mode = direct" >> /etc/ofelia/config.ini' && \  
     echo 'echo "Running initial check..."' >> /app/start.sh && \
     echo '/app/compose-checker -config /app/config.yaml' >> /app/start.sh && \
     echo 'echo "Starting scheduler..."' >> /app/start.sh && \
