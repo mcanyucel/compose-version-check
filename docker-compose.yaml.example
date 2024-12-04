@@ -1,9 +1,13 @@
 services:
   compose-checker:
-    image: mcanyucel/compose-checker
+    container_name: compose-checker
+    image: mcanyucel/compose-checker:1 # if you want to fix major version
     volumes:
       - ./:/watch:ro
       - ./config.yaml:/app/config.yaml:ro
     environment:
-      - CHECK_INTERVAL=6  # Check every 6 hours, change this value as needed
+      - CHECK_INTERVAL=5m  # 5 minutes
+      # or CHECK_INTERVAL=30m  # 30 minutes
+      # or CHECK_INTERVAL=1h   # 1 hour
+      # or CHECK_INTERVAL=6h   # 6 hours (default)
     restart: unless-stopped

@@ -1,0 +1,14 @@
+files:
+  - local_path: hoarder/docker-compose.yml
+    source_url: https://raw.githubusercontent.com/hoarder-app/hoarder/refs/heads/main/docker/docker-compose.yml
+  - local_path: authelia/docker-compose.yml
+    source_url: https://raw.githubusercontent.com/authelia/authelia/refs/heads/master/examples/compose/local/docker-compose.yml
+  - local_path: multiscrobbler/docker-compose.yaml
+    source_url: https://raw.githubusercontent.com/FoxxMD/multi-scrobbler/refs/heads/master/docker-compose.yml
+  - local_path: umami/docker-compose.yaml
+    source_url: https://raw.githubusercontent.com/umami-software/umami/refs/heads/master/docker-compose.yml
+  - local_path: paperless/docker-compose.yaml
+    source_url: https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/refs/heads/dev/docker/compose/docker-compose.sqlite.yml
+notifications:
+  type: slack
+  slack_webhook: https://hooks.slack.com/services/<slack_webhook>
