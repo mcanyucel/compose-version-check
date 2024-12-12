@@ -136,6 +136,21 @@ notifications:
   telegram_chat: "your-chat-id"  # for Telegram
   debug_file: "notifications"  # optional, for debug mode
 ```
+### Configuration File Generator
+
+The python script file *compose_finder.py* can traverse the given root directory to find *docker-compose.yaml* files (recursively), copy them to this project root, into *containers* directory, and generate the skeleton of the configuration file. It requires pyyaml, so the suggested method of execution is to use the *compose-finder.sh* bash script, which creates a new python environment (if not exists), activating it, installing necessary packages, then running the script (finally deactivating the environment). This script also accepts the search root folder as an argument, and passes it to the python script.
+
+Before first use, don't forget to make the sh file executable:
+
+```
+chmod +x compose-finder.sh
+```
+
+Then you can run the script:
+
+```
+./compose-finder.sh /path/to/source/directory
+```
 
 ## Usage
 
