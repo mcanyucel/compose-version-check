@@ -1,0 +1,31 @@
+# Trimmed from Immich's docker-compose.yml for tests. Digests are shortened.
+name: immich
+
+x-upstream:
+  url: https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
+  env: https://github.com/immich-app/immich/releases/latest/download/example.env
+
+services:
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    volumes:
+      - ${UPLOAD_LOCATION}:/data
+    ports:
+      - '2283:2283'
+    restart: always
+
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    restart: always
+
+  redis:
+    container_name: immich_redis
+    image: docker.io/valkey/valkey:8-bookworm@sha256:fec42f39
+    restart: always
+
+  database:
+    container_name: immich_postgres
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:41eacbe8
+    restart: always
